@@ -13,6 +13,10 @@ import org.apache.spark.streaming.twitter._
 //file read
 import scala.io.Source
 
+import java.util.Properties
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, ProducerConfig}
+import kafka.producer.KeyedMessage
+
 
 object TweetAnalysis {
 
@@ -24,52 +28,51 @@ object TweetAnalysis {
 
 		// Use the config to create a streaming context that creates a new RDD
 		// with a batch interval of every 5 seconds.
-		val ssc = new StreamingContext(sparkConf, Seconds(5))
-		
-		// Read the positive and negative words which will be used in our sentiment analysis
-		val posWords: Set[String] = readSentimentWords("./positive-words.txt")
-		val negWords: Set[String] = readSentimentWords("./negative-words.txt")	
+		val ssc = new StreamingContext(sparkConf, Seconds(5))	
 
 		// Assign credentials used by Oauth when creating the stream
 		setupCredentials()
 
-		// Use the streaming context and the TwitterUtils to create the Twitter stream.
-		//val tweetDstream = TwitterUtils.createStream(ssc, None, Set("language=en", "")) // TODO add filter
-		val tweetDstream = loadSentiment140File(sc, "./training.1600000.processed.noemoticon.csv")
-		val tweetTexts = stream.flatMap(status => status.getText)
+		// Setup KafkaProducer
+	  	val topic = "twitter"
+    	val brokers = "localhost:9092"
+    	val props = new Properties()
+	    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers)
+	    props.put(ProducerConfig.CLIENT_ID_CONFIG, "TweetProducer")
+	    props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
+	    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
+	    val producer = new KafkaProducer[String, String](props)
+
+		// Use the streaming context and the TwitterUtils to create the Twitter stream. The last argument is our filter.
+		val tweetDstream = TwitterUtils.createStream(ssc, None, Seq("realDonaldTrump", "notMyPresident"))
+		
+		// Get all tweets that are in english and then only save the text of each tweet
+		val tweetTexts = tweetDstream.filter(_.getLang() == "en").map(status => status.getText)
 
    		tweetTexts.foreachRDD { rdd =>
+   			// Master space
+
    			rdd.foreachPartition { partitionOfRecords =>
    				// Worker space
 
    				partitionOfRecords.foreach {tweet =>
-   					// Perform sentiment analysis
-   					sentimentAnalysis(tweet)
+					val sentiment = sentimentAnalysis(tweet) // Perform sentiment analysis
 
    					// Send result to Kafka topic
-
+			        val data = new ProducerRecord[String, String](topic, sentiment.toString, tweet)
+			        producer.send(data)
+					}
    				}
-
    			}
-   		}	
-
+   			
 		ssc.start()
 		ssc.awaitTermination()
+		producer.close()		
 	}
 
-
-	def loadSentiment140File(sc: SparkContext, sentiment140FilePath: String): DataFrame = {
-	    val sqlContext = SQLContextSingleton.getInstance(sc)
-	    val tweetsDF = sqlContext.read
-	      .format("com.databricks.spark.csv")
-	      .option("header", "false")
-	      .option("inferSchema", "true")
-	      .load(sentiment140FilePath)
-	      .toDF("polarity", "id", "date", "query", "user", "status")
-
-	    // Drop the columns we are not interested in.
-	    tweetsDF.drop("polarity").drop("id").drop("date").drop("query").drop("user")
-  	}
+	// Read the positive and negative words which will be used in our sentiment analysis
+	val posWords: Set[String] = readSentimentWords("./positive-words.txt")
+	val negWords: Set[String] = readSentimentWords("./negative-words.txt")	
 
 	def sentimentAnalysis(tweetText: String): Int = {
 		
@@ -79,8 +82,12 @@ object TweetAnalysis {
         // Loop over words from stream and increase score.
         var score = 0
         for(word <- list){
-            if (posWords.contains(word)) score++
-            if (negWords.contains(word)) score--   
+            if (posWords.contains(word)) {
+            	score += 1
+            }
+            if (negWords.contains(word)) {
+            	score -= 1   	
+            } 
         }
 
         score match {
@@ -97,9 +104,9 @@ object TweetAnalysis {
 		val properties = Source.fromFile("./project.properties").getLines.toList
 		
 		val CONSUMERKEY = properties(0).split(" ")(2)
-		val CONSUMERSECRET = properties(0).split(" ")(3)	
-		val ACCESSTOKEN = properties(0).split(" ")(3)
-		val ACCESSTOKENSECRET = properties(0).split(" ")(3)	
+		val CONSUMERSECRET = properties(1).split(" ")(3)	
+		val ACCESSTOKEN = properties(2).split(" ")(2)
+		val ACCESSTOKENSECRET = properties(3).split(" ")(3)	
 
 		System.setProperty("twitter4j.oauth.consumerKey", CONSUMERKEY)
 		System.setProperty("twitter4j.oauth.consumerSecret", CONSUMERSECRET)
