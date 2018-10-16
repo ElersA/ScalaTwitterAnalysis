@@ -43,32 +43,31 @@ object TweetAnalysis {
 	    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
 
 		// Use the streaming context and the TwitterUtils to create the Twitter stream. The last argument is our filter.
-		val tweetDstream = TwitterUtils.createStream(ssc, None, Seq("realDonaldTrump", "notMyPresident"))
-		
-		// Get all tweets that are in english and then only save the text of each tweet
-		val tweetTexts = tweetDstream.filter(_.getLang() == "en").map(status => status.getText)
+		//val tweetDstream = TwitterUtils.createStream(ssc, None, Seq("realDonaldTrump", "notMyPresident"))
+		val tweetDstream = TwitterUtils.createStream(ssc, None)
 
+		// Get all tweets that are in english and then only save the text of each tweet
+		val tweetTexts = tweetDstream.filter(_.getLang() == "en").map(_.getText).print()
+
+/*
    		tweetTexts.foreachRDD { rdd =>
    			// Master space
-
    			rdd.foreachPartition { partitionOfRecords =>
    				// Worker space
    				val producer = new KafkaProducer[String, String](props)
-
    				partitionOfRecords.foreach {tweet =>
 					val sentiment = sentimentAnalysis(tweet) // Perform sentiment analysis
 
    					// Send result to Kafka topic
 			        val data = new ProducerRecord[String, String](topic, sentiment.toString, tweet)
 			        producer.send(data)
-					}
+				}
 				producer.close()			
-   				}
-   			}
-   			
+			}
+		}
+*/
 		ssc.start()
 		ssc.awaitTermination()
-		
 	}
 
 	// Read the positive and negative words which will be used in our sentiment analysis
@@ -83,10 +82,10 @@ object TweetAnalysis {
         // Loop over words from stream and increase score.
         var score = 0
         for(word <- list){
-            if (posWords.contains(word)) {
+            if (posWords.contains(word.toLowerCase())) {
             	score += 1
             }
-            if (negWords.contains(word)) {
+            if (negWords.contains(word.toLowerCase())) {
             	score -= 1   	
             } 
         }
@@ -98,7 +97,7 @@ object TweetAnalysis {
         }
 	}
 
-	def readSentimentWords(path: String): Set[String] = Source.fromFile(path).getLines.toList.filterNot(_.contains(";")).tail.toSet
+	def readSentimentWords(path: String): Set[String] = Source.fromFile(path).getLines.toList.filterNot(_.contains(";")).tail.map(_.toLowerCase()).toSet
 
 	def setupCredentials() = {
 		// These lines set the system properties which twitter4j will use for authentication when using TwitterUtils.createStream(ssc, None)	
