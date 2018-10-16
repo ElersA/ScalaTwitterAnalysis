@@ -41,7 +41,6 @@ object TweetAnalysis {
 	    props.put(ProducerConfig.CLIENT_ID_CONFIG, "TweetProducer")
 	    props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
 	    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
-	    val producer = new KafkaProducer[String, String](props)
 
 		// Use the streaming context and the TwitterUtils to create the Twitter stream. The last argument is our filter.
 		val tweetDstream = TwitterUtils.createStream(ssc, None, Seq("realDonaldTrump", "notMyPresident"))
@@ -54,6 +53,7 @@ object TweetAnalysis {
 
    			rdd.foreachPartition { partitionOfRecords =>
    				// Worker space
+   				val producer = new KafkaProducer[String, String](props)
 
    				partitionOfRecords.foreach {tweet =>
 					val sentiment = sentimentAnalysis(tweet) // Perform sentiment analysis
@@ -62,12 +62,13 @@ object TweetAnalysis {
 			        val data = new ProducerRecord[String, String](topic, sentiment.toString, tweet)
 			        producer.send(data)
 					}
+				producer.close()			
    				}
    			}
    			
 		ssc.start()
 		ssc.awaitTermination()
-		producer.close()		
+		
 	}
 
 	// Read the positive and negative words which will be used in our sentiment analysis
