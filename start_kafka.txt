@@ -3,8 +3,11 @@ export PATH=$KAFKA_HOME/bin:$PATH
 $KAFKA_HOME/bin/zookeeper-server-start.sh $KAFKA_HOME/config/zookeeper.properties
 $KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties
 
-$KAFKA_HOME/bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic twiter
+$KAFKA_HOME/bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic twitter
 
 
 
 delete.topic.enable=true i config/server.properties
+delet topic
+$KAFKA_HOME/bin/kafka-topics.sh --zookeeper localhost:2181 --delete --topic test
+
