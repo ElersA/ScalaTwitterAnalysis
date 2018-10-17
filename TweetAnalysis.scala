@@ -49,16 +49,16 @@ object TweetAnalysis {
 		val tweetDstream = TwitterUtils.createStream(ssc, None,Seq("realDonaldTrump", "notMyPresident"))
 
 		// Get all tweets that are in english and then only save the text of each tweet
-		val tweetTexts = tweetDstream.filter(x=> x.getLang() == "en" && !(x.getText.startsWith("@")) && x.getText.length>1).map(x=> (sentimentAnalysis(x.getText),x.getText)).print
+		val tweetTexts = tweetDstream.filter(x=> x.getLang() == "en" && !(x.getText.startsWith("@")) && x.getText.length>1).map(x=> (sentimentAnalysis(x.getText),x.getText))
 
 
 		tweetTexts.foreachRDD { rdd =>
 			rdd.foreachPartition { partitionOfRecords =>
 				val producer = new KafkaProducer[String, String](props)
-				partitionOfRecords.foreach(record => 
-					val data = new ProducerRecord[String, String](topic, null, record._1.toString)
+				partitionOfRecords.foreach{record => 
+					val data = new ProducerRecord[String, String](topic, record._1.toString , record._2)
 					producer.send(data)
-					)
+					}
 				producer.close()			
 			}
 		}
