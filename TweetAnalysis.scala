@@ -63,7 +63,7 @@ object TweetAnalysis {
    					// Send result to Kafka topic
 			        val data = new ProducerRecord[String, String](topic, sentiment.toString, tweet)
 			        producer.send(data)
-				}
+				
 				producer.close()			
 			}
 		}
