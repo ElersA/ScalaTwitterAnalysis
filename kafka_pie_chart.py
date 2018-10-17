@@ -13,22 +13,26 @@ class pie:
 		self.colors = ['green', 'red', 'cyan']
 		self.explode = (0.01, 0.01, 0.01)
 		self.labels = ['posetiv', 'negativ', 'neutral']
+		self.posetiv = []
+		self.negativ = []
+		self.consumer.subscribe(['pie'])
+			
 	#subscribe to a topic change to twitter
-	def sub(self):
-		self.consumer.subscribe(['pie']) #twitter pie for test
 	#reads 10 medelanden och updaterar count pos neg ne
 	def listen_and_add(self):
 		i = 0
 		for message in self.consumer:
 			i +=1
-	        if(i>10):
-	        	return
-			if message[6] == "0":
+			#print(int(message[6]).type)
+	        
+			if message[6]=="0":
 				self.sentiment_count[0]+=1
-			elif message[6] == "1":
+			elif message[6]=="1":
 				self.sentiment_count[1]+=1
-			elif message[6] == "2":
+			elif message[6]=="2":
 				self.sentiment_count[2]+=1
+			if(i>10):
+				return
 	    	
 	#closes consumer
 	def close_consumer(self):
@@ -55,19 +59,16 @@ class pie:
 		self.ax[2].axis('equal')
 
 	 	str_num = str(num)
-	 	for x in range(3):
-	 		self.sentiment_count[x] += str_num.count(str(x))
 		self.ax[0].pie(self.sentiment_count, explode=self.explode, labels=self.labels, colors=self.colors,
 			autopct='%1.1f%%', shadow=True, startangle=140)
 		self.ax[0].set_title(str_num)
-		s1 = "posetiv " + str(num) + '\n' + "tweetesf ldkfg hisdfu ghsdlfbgh"
-		s2 = "negativ " + str(num) + '\n' + "tweetesf ldkfg hisdfu ghsdlfbgh"
+		s1 = "posetiv " + str(self.sentiment_count[0]) + '\n' + "tweetesf ldkfg hisdfu ghsdlfbgh"
+		s2 = "negativ " + str(self.sentiment_count[1]) + '\n' + "tweetesf ldkfg hisdfu ghsdlfbgh"
 		self.ax[1].text(0, 1, s1,ha='left', va='top',fontsize=12)
 		self.ax[2].text(0, 1, s2,ha='left', va='top',fontsize=12)
 
 	#run the visualisation
 	def run(self):
-		self.sub()
 		ani = FuncAnimation(self.fig, self.update, repeat=True)
 		plt.show()
 
