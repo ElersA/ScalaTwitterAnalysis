@@ -14,8 +14,8 @@ import org.apache.spark.streaming.twitter._
 import scala.io.Source
 
 import java.util.Properties
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, ProducerConfig}
-import kafka.producer.KeyedMessage
+//import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, ProducerConfig}
+//import kafka.producer.KeyedMessage
 
 
 object TweetAnalysis {
@@ -28,23 +28,25 @@ object TweetAnalysis {
 
 		// Use the config to create a streaming context that creates a new RDD
 		// with a batch interval of every 5 seconds.
-		val ssc = new StreamingContext(sparkConf, Seconds(5))	
+		val ssc = new StreamingContext(sparkConf, Seconds(10))	
+
+    	
 
 		// Assign credentials used by Oauth when creating the stream
 		setupCredentials()
 
 		// Setup KafkaProducer
-	  	val topic = "twitter"
+	  	/*val topic = "twitter"
     	val brokers = "localhost:9092"
     	val props = new Properties()
 	    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers)
 	    props.put(ProducerConfig.CLIENT_ID_CONFIG, "TweetProducer")
 	    props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
 	    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
-
+		*/
 		// Use the streaming context and the TwitterUtils to create the Twitter stream. The last argument is our filter.
 		//val tweetDstream = TwitterUtils.createStream(ssc, None, Seq("realDonaldTrump", "notMyPresident"))
-		val tweetDstream = TwitterUtils.createStream(ssc, None)
+		val tweetDstream = TwitterUtils.createStream(ssc, None,Seq("realDonaldTrump", "notMyPresident"))
 
 		// Get all tweets that are in english and then only save the text of each tweet
 		val tweetTexts = tweetDstream.filter(_.getLang() == "en").map(_.getText).print()
