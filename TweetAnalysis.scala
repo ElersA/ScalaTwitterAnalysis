@@ -14,8 +14,8 @@ import org.apache.spark.streaming.twitter._
 import scala.io.Source
 
 import java.util.Properties
-//import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, ProducerConfig}
-//import kafka.producer.KeyedMessage
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, ProducerConfig}
+import kafka.producer.KeyedMessage
 
 
 object TweetAnalysis {
@@ -36,14 +36,14 @@ object TweetAnalysis {
 		setupCredentials()
 
 		// Setup KafkaProducer
-	  	/*val topic = "twitter"
+	  	val topic = "twitter"
     	val brokers = "localhost:9092"
     	val props = new Properties()
 	    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers)
 	    props.put(ProducerConfig.CLIENT_ID_CONFIG, "TweetProducer")
 	    props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
 	    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
-		*/
+		
 		// Use the streaming context and the TwitterUtils to create the Twitter stream. The last argument is our filter.
 		//val tweetDstream = TwitterUtils.createStream(ssc, None, Seq("realDonaldTrump", "notMyPresident"))
 		val tweetDstream = TwitterUtils.createStream(ssc, None,Seq("realDonaldTrump", "notMyPresident"))
@@ -51,14 +51,25 @@ object TweetAnalysis {
 		// Get all tweets that are in english and then only save the text of each tweet
 		val tweetTexts = tweetDstream.filter(x=> x.getLang() == "en" && !(x.getText.startsWith("@")) && x.getText.length>1).map(x=> (sentimentAnalysis(x.getText),x.getText)).print
 
-/*
+
+		tweetTexts.foreachRDD { rdd =>
+			rdd.foreachPartition { partitionOfRecords =>
+				val producer = new KafkaProducer[String, String](props)
+				partitionOfRecords.foreach(record => 
+					val data = new ProducerRecord[String, String](topic, null, record._1.toString)
+					producer.send(data)
+					)
+				producer.close()			
+			}
+		}
+		/*
    		tweetTexts.foreachRDD { rdd =>
    			// Master space
    			rdd.foreachPartition { partitionOfRecords =>
    				// Worker space
-   				val producer = new KafkaProducer[String, String](props)
+   				//val producer = new KafkaProducer[String, String](props)
    				partitionOfRecords.foreach {tweet =>
-					val sentiment = sentimentAnalysis(tweet) // Perform sentiment analysis
+					//val sentiment = sentimentAnalysis(tweet) // Perform sentiment analysis
 
    					// Send result to Kafka topic
 			        val data = new ProducerRecord[String, String](topic, sentiment.toString, tweet)
@@ -67,7 +78,7 @@ object TweetAnalysis {
 				producer.close()			
 			}
 		}
-*/
+		*/
 		ssc.start()
 		ssc.awaitTermination()
 	}
