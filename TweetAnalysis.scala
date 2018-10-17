@@ -36,7 +36,7 @@ object TweetAnalysis {
 		setupCredentials()
 
 		// Setup KafkaProducer
-	  	val topic = "twitter"
+	  	val topic = "twitter1"
     	val brokers = "localhost:9092"
     	val props = new Properties()
 	    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, brokers)
@@ -56,7 +56,7 @@ object TweetAnalysis {
 			rdd.foreachPartition { partitionOfRecords =>
 				val producer = new KafkaProducer[String, String](props)
 				partitionOfRecords.foreach{record => 
-					val data = new ProducerRecord[String, String](topic, record._1.toString , record._2)
+					val data = new ProducerRecord[String, String](topic, record._2, record._1.toString)
 					producer.send(data)
 					}
 				producer.close()			
@@ -125,6 +125,7 @@ object TweetAnalysis {
 		System.setProperty("twitter4j.oauth.consumerSecret", CONSUMERSECRET)
 		System.setProperty("twitter4j.oauth.accessToken", ACCESSTOKEN)
 		System.setProperty("twitter4j.oauth.accessTokenSecret", ACCESSTOKENSECRET)
+
 	}
 
 }

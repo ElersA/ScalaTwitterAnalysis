@@ -15,11 +15,11 @@ class pie:
 		self.labels = ['posetiv', 'negativ', 'neutral']
 		self.posetiv = []
 		self.negativ = []
-		self.consumer.subscribe(['twitter'])
+		self.consumer.subscribe(['twitter1'])
 		for message in self.consumer:
 			print ("%s:%d:%d: key=%s value=%s" % (message.topic, message.partition,
-                                          message.offset, unicode(message.key, 'utf-8'),
-                                          message.value))
+                                          message.offset, str(message.key),
+                                          str(message.value)))
 			
 	#subscribe to a topic change to twitter
 	#reads 10 medelanden och updaterar count pos neg ne
@@ -30,12 +30,12 @@ class pie:
 	        
 			if message.value=="1":
 				self.sentiment_count[0]+=1
-				self.posetiv.append(unicode(message.key, 'utf-8'))
+				self.posetiv.append(str(message.key))
 				if len(self.posetiv)>4:
 					self.posetiv.pop(0)
 			elif message.value=="-1":
 				self.sentiment_count[1]+=1
-				self.negativ.append(unicode(message.key, 'utf-8'))
+				self.negativ.append(str(message.key))
 				if len(self.negativ)>4:
 					self.negativ.pop(0)
 			elif message.value=="0":
