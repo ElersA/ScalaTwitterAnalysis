@@ -23,12 +23,17 @@ class pie:
 		i = 0
 		for message in self.consumer:
 			i +=1
-			#print(int(message[6]).type)
 	        
 			if message[6]=="0":
 				self.sentiment_count[0]+=1
+				self.posetiv.append(message[5])
+				if len(self.posetiv)>4:
+					self.posetiv.pop(0)
 			elif message[6]=="1":
 				self.sentiment_count[1]+=1
+				self.negativ.append(message[5])
+				if len(self.negativ)>4:
+					self.negativ.pop(0)
 			elif message[6]=="2":
 				self.sentiment_count[2]+=1
 			if(i>10):
@@ -62,8 +67,12 @@ class pie:
 		self.ax[0].pie(self.sentiment_count, explode=self.explode, labels=self.labels, colors=self.colors,
 			autopct='%1.1f%%', shadow=True, startangle=140)
 		self.ax[0].set_title(str_num)
-		s1 = "posetiv " + str(self.sentiment_count[0]) + '\n' + "tweetesf ldkfg hisdfu ghsdlfbgh"
-		s2 = "negativ " + str(self.sentiment_count[1]) + '\n' + "tweetesf ldkfg hisdfu ghsdlfbgh"
+		s1 = "posetiv " + str(self.sentiment_count[0]) +'\n'
+		s2 = "negativ " + str(self.sentiment_count[1]) +'\n'
+		for s in self.posetiv:
+			s1 += s+ '\n'
+		for s in self.negativ:
+			s2 += s+ '\n'
 		self.ax[1].text(0, 1, s1,ha='left', va='top',fontsize=12)
 		self.ax[2].text(0, 1, s2,ha='left', va='top',fontsize=12)
 
