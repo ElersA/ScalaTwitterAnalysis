@@ -17,6 +17,7 @@ class pie:
 		self.posetiv = []
 		self.negativ = []
 		self.consumer.subscribe(['twitter1'])
+		self.t_count = 0
 		#for message in self.consumer:
 		#	print ("%s:%d:%d: key=%s value=%s" % (message.topic, message.partition,
          #                                 message.offset, str(message.key),
@@ -31,14 +32,16 @@ class pie:
 	        
 			if message.value=="1":
 				self.sentiment_count[0]+=1
-				self.posetiv.append(message.key.decode('utf-8').strip())
-				if len(self.posetiv)>4:
-					self.posetiv.pop(0)
+				if self.t_count<5:
+					self.posetiv.append(message.key.decode('utf-8').strip())
+					if len(self.posetiv)>4:
+						self.posetiv.pop(0)
 			elif message.value=="-1":
 				self.sentiment_count[1]+=1
-				self.negativ.append(message.key.decode('utf-8').strip())
-				if len(self.negativ)>4:
-					self.negativ.pop(0)
+				if self.t_count<5:
+					self.negativ.append(message.key.decode('utf-8').strip())
+					if len(self.negativ)>4:
+						self.negativ.pop(0)
 			elif message.value=="0":
 				self.sentiment_count[2]+=1
 			if(i>3):
@@ -57,6 +60,9 @@ class pie:
 	#updaterar pie charten
 	def update(self,num):
 		#read all kafka and add to data 
+		self.t_count +=1
+		if self.t_count>10:
+			self.t_count = 0
 		self.listen_and_add()
 		print(self.sentiment_count)
 		self.ax[0].clear()
@@ -68,16 +74,16 @@ class pie:
 		self.ax[2].axis('off')
 		self.ax[2].axis('equal')
 		time.sleep(0.5)
-	 	str_num = str(num)
+	 	str_num = "neutral " + str(self.sentiment_count[2])
 		self.ax[0].pie(self.sentiment_count, explode=self.explode, labels=self.labels, colors=self.colors,
 			autopct='%1.1f%%', shadow=True, startangle=140)
 		self.ax[0].set_title(str_num)
-		s1 = "positive " + str(self.sentiment_count[0]) +'\n'
-		s2 = "negative " + str(self.sentiment_count[1]) +'\n'
+		s1 = "positive " + str(self.sentiment_count[0]) +'\n'+'\n' 
+		s2 = "negative " + str(self.sentiment_count[1]) +'\n'+'\n'
 		for s in self.posetiv:
-			s1 += s+ '\n'
+			s1 += s+ '\n'+'\n'
 		for s in self.negativ:
-			s2 += s+ '\n'
+			s2 += s+ '\n'+'\n'
 		self.ax[1].text(0, 1, s1,ha='left', va='top',fontsize=12,wrap=True)
 		self.ax[2].text(-1.8, -1, s2,ha='left', va='center',fontsize=12,wrap=True)
 
