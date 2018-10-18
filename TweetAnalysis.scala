@@ -1,36 +1,23 @@
-
-// Needed for all Spark jobs.
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext._
-
-// Only needed for Spark Streaming.
 import org.apache.spark.streaming.Seconds
 import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.StreamingContext._
-
-// Only needed for utilities for streaming from Twitter.
 import org.apache.spark.streaming.twitter._
-//file read
 import scala.io.Source
-
 import java.util.Properties
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, ProducerConfig}
 import kafka.producer.KeyedMessage
-
 
 object TweetAnalysis {
 
 	def main(args: Array[String]) {
 
-		// Set up the Spark configuration with our app name and any other config
-		// parameters you want (e.g., Kryo serialization or executor memory).
-		val sparkConf = new SparkConf().setAppName("id2221prog").setMaster("local[2]")
+		// Set up the Spark configuration with the app name and use two threads
+		val sparkConf = new SparkConf().setAppName("id2221proj").setMaster("local[2]")
 
-		// Use the config to create a streaming context that creates a new RDD
-		// with a batch interval of every 5 seconds.
+		// Use the config to create a streaming context with a batch interval of every 5 seconds.
 		val ssc = new StreamingContext(sparkConf, Seconds(5))	
-
-    	
 
 		// Assign credentials used by Oauth when creating the stream
 		setupCredentials()
@@ -45,40 +32,23 @@ object TweetAnalysis {
 	    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
 		
 		// Use the streaming context and the TwitterUtils to create the Twitter stream. The last argument is our filter.
-		//val tweetDstream = TwitterUtils.createStream(ssc, None, Seq("realDonaldTrump", "notMyPresident"))
 		val tweetDstream = TwitterUtils.createStream(ssc, None,Seq("realDonaldTrump", "notMyPresident"))
 
-		// Get all tweets that are in english and then only save the text of each tweet
-		val tweetTexts = tweetDstream.filter(x=> x.getLang() == "en" && x.getText.length>1).map(x=> (sentimentAnalysis(x.getText),x.getText))
+		val tweetTuples = tweetDstream
+			.filter(x => x.getLang() == "en")						// Only use english tweets
+			.map(x => (sentimentAnalysis(x.getText), x.getText))	// Get tuples of (sentiment, text)
 
-
-		tweetTexts.foreachRDD { rdd =>
+		tweetTuples.foreachRDD { rdd =>
 			rdd.foreachPartition { partitionOfRecords =>
-				val producer = new KafkaProducer[String, String](props)
+				val producer = new KafkaProducer[String, String](props) // Reuse the same producer for an entire partition (more efficient than creating it in the foreach below)
 				partitionOfRecords.foreach{record => 
-					val data = new ProducerRecord[String, String](topic, record._2, record._1.toString)
+					val data = new ProducerRecord[String, String](topic, record._2, record._1.toString) // Send record to Kafka
 					producer.send(data)
 					}
 				producer.close()			
 			}
 		}
-		/*
-   		tweetTexts.foreachRDD { rdd =>
-   			// Master space
-   			rdd.foreachPartition { partitionOfRecords =>
-   				// Worker space
-   				//val producer = new KafkaProducer[String, String](props)
-   				partitionOfRecords.foreach {tweet =>
-					//val sentiment = sentimentAnalysis(tweet) // Perform sentiment analysis
-
-   					// Send result to Kafka topic
-			        val data = new ProducerRecord[String, String](topic, sentiment.toString, tweet)
-			        producer.send(data)
-				
-				producer.close()			
-			}
-		}
-		*/
+		
 		ssc.start()
 		ssc.awaitTermination()
 	}
@@ -125,7 +95,5 @@ object TweetAnalysis {
 		System.setProperty("twitter4j.oauth.consumerSecret", CONSUMERSECRET)
 		System.setProperty("twitter4j.oauth.accessToken", ACCESSTOKEN)
 		System.setProperty("twitter4j.oauth.accessTokenSecret", ACCESSTOKENSECRET)
-
 	}
-
 }
