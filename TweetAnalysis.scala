@@ -28,7 +28,7 @@ object TweetAnalysis {
 
 		// Use the config to create a streaming context that creates a new RDD
 		// with a batch interval of every 5 seconds.
-		val ssc = new StreamingContext(sparkConf, Seconds(10))	
+		val ssc = new StreamingContext(sparkConf, Seconds(5))	
 
     	
 
@@ -49,7 +49,7 @@ object TweetAnalysis {
 		val tweetDstream = TwitterUtils.createStream(ssc, None,Seq("realDonaldTrump", "notMyPresident"))
 
 		// Get all tweets that are in english and then only save the text of each tweet
-		val tweetTexts = tweetDstream.filter(x=> x.getLang() == "en" && !(x.getText.startsWith("@")) && x.getText.length>1).map(x=> (sentimentAnalysis(x.getText),x.getText))
+		val tweetTexts = tweetDstream.filter(x=> x.getLang() == "en" && x.getText.length>1).map(x=> (sentimentAnalysis(x.getText),x.getText))
 
 
 		tweetTexts.foreachRDD { rdd =>

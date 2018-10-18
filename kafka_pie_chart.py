@@ -1,6 +1,7 @@
 from kafka import KafkaConsumer
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import time
 class pie:
 	
 	
@@ -12,14 +13,14 @@ class pie:
 		self.sentiment_count = [0,0,0] 
 		self.colors = ['green', 'red', 'cyan']
 		self.explode = (0.01, 0.01, 0.01)
-		self.labels = ['posetiv', 'negativ', 'neutral']
+		self.labels = ['positive', 'negative', 'neutral']
 		self.posetiv = []
 		self.negativ = []
 		self.consumer.subscribe(['twitter1'])
-		for message in self.consumer:
-			print ("%s:%d:%d: key=%s value=%s" % (message.topic, message.partition,
-                                          message.offset, str(message.key),
-                                          str(message.value)))
+		#for message in self.consumer:
+		#	print ("%s:%d:%d: key=%s value=%s" % (message.topic, message.partition,
+         #                                 message.offset, str(message.key),
+          #                                str(message.value)))
 			
 	#subscribe to a topic change to twitter
 	#reads 10 medelanden och updaterar count pos neg ne
@@ -30,18 +31,18 @@ class pie:
 	        
 			if message.value=="1":
 				self.sentiment_count[0]+=1
-				self.posetiv.append(str(message.key))
+				self.posetiv.append(message.key.decode('utf-8').strip())
 				if len(self.posetiv)>4:
 					self.posetiv.pop(0)
 			elif message.value=="-1":
 				self.sentiment_count[1]+=1
-				self.negativ.append(str(message.key))
+				self.negativ.append(message.key.decode('utf-8').strip())
 				if len(self.negativ)>4:
 					self.negativ.pop(0)
 			elif message.value=="0":
 				self.sentiment_count[2]+=1
-			#if(i>10):
-			#	return
+			if(i>3):
+				return
 	    	
 	#closes consumer
 	def close_consumer(self):
@@ -66,19 +67,19 @@ class pie:
 		self.ax[2].clear()
 		self.ax[2].axis('off')
 		self.ax[2].axis('equal')
-
+		time.sleep(0.5)
 	 	str_num = str(num)
 		self.ax[0].pie(self.sentiment_count, explode=self.explode, labels=self.labels, colors=self.colors,
 			autopct='%1.1f%%', shadow=True, startangle=140)
 		self.ax[0].set_title(str_num)
-		s1 = "posetiv " + str(self.sentiment_count[0]) +'\n'
-		s2 = "negativ " + str(self.sentiment_count[1]) +'\n'
+		s1 = "positive " + str(self.sentiment_count[0]) +'\n'
+		s2 = "negative " + str(self.sentiment_count[1]) +'\n'
 		for s in self.posetiv:
 			s1 += s+ '\n'
 		for s in self.negativ:
 			s2 += s+ '\n'
-		self.ax[1].text(0, 1, s1,ha='left', va='top',fontsize=12)
-		self.ax[2].text(0, 1, s2,ha='left', va='top',fontsize=12)
+		self.ax[1].text(0, 1, s1,ha='left', va='top',fontsize=12,wrap=True)
+		self.ax[2].text(-1.8, -1, s2,ha='left', va='center',fontsize=12,wrap=True)
 
 	#run the visualisation
 	def run(self):
