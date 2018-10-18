@@ -12,7 +12,7 @@ class pie:
                                  consumer_timeout_ms=1000)
 		self.fig, self.ax = plt.subplots(1, 3, sharey=True)
 		self.sentiment_count = [0,0,0] 
-		self.colors = ['green', 'red', 'gray']
+		self.colors = ['lightgreen', 'red', 'cyan']
 		self.explode = (0.01, 0.01, 0.01)
 		self.labels = ['positive', 'negative', 'neutral']
 		self.positive = []
