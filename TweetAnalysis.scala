@@ -34,15 +34,13 @@ object TweetAnalysis {
 		// Use the streaming context and the TwitterUtils to create the Twitter stream. The last argument is our filter.
 		val tweetDstream = TwitterUtils.createStream(ssc, None,Seq("realDonaldTrump", "notMyPresident"))
 
-		val tweetTuples = tweetDstream
-			.filter(x => x.getLang() == "en")						// Only use english tweets
-			.map(x => (sentimentAnalysis(x.getText), x.getText))	// Get tuples of (sentiment, text)
+		val tweetTexts = tweetDstream.filter(x => x.getLang() == "en").map(x => x.getText)
 
-		tweetTuples.foreachRDD { rdd =>
+		tweetTexts.foreachRDD { rdd =>
 			rdd.foreachPartition { partitionOfRecords =>
 				val producer = new KafkaProducer[String, String](props) // Reuse the same producer for an entire partition (more efficient than creating it in the foreach below)
 				partitionOfRecords.foreach{record => 
-					val data = new ProducerRecord[String, String](topic, record._2, record._1.toString) // Send record to Kafka
+					val data = new ProducerRecord[String, String](topic, record, sentimentAnalysis(record).toString) // Send record to Kafka
 					producer.send(data)
 					}
 				producer.close()			
